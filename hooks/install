@@ -1,0 +1,53 @@
+#!/bin/bash
+# Here do anything needed to install the service
+# i.e. apt-get install -y foo  or  bzr branch http://myserver/mycode /srv/webroot
+# Make sure this hook exits cleanly and is idempotent, common problems here are
+# failing to account for a debconf question on a dependency, or trying to pull
+# from github without installing git first.
+
+export DEBIAN_FRONTEND=noninteractive
+sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)"
+# TODO: remove sed configuration when bootstrap is updated and set options through config.yaml
+sed -i "s/brokerIp=localhost/brokerIp=$(unit-get public-address)/" /etc/openbaton/openbaton-*.properties
+# TODO: remove copy pasted mysql install/configuration when bootstrap supports it in noninteractive
+configure_mysql () {
+    export properties_file_name=${1}
+
+    sed -i "s/spring.datasource.url=jdbc:hsqldb:file:\/tmp\/openbaton\/openbaton.hsdb/# spring.datasource.url=jdbc:hsqldb:file:\/tmp\/openbaton\/openbaton.hsdb/g" /etc/openbaton/${properties_file_name}
+    sed -i "s/spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/# spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/g" /etc/openbaton/${properties_file_name}
+    sed -i "s/spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/# spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/g" /etc/openbaton/${properties_file_name}
+    sed -i "s/spring.jpa.hibernate.ddl-auto=create-drop/# spring.jpa.hibernate.ddl-auto=create-drop/g" /etc/openbaton/${properties_file_name}
+    sed -i "s/# spring.jpa.hibernate.ddl-auto=update/spring.jpa.hibernate.ddl-auto=update/g" /etc/openbaton/${properties_file_name}
+    sed -i "s/# spring.datasource.validationQuery=SELECT 1/spring.datasource.validationQuery=SELECT 1/g" /etc/openbaton/${properties_file_name}
+    sed -i "s/# spring.datasource.testOnBorrow=true/spring.datasource.testOnBorrow=true/g" /etc/openbaton/${properties_file_name}
+    # Enable MySQL
+    sed -i "s/# spring.datasource.url=jdbc:mysql:\/\/localhost:3306\/openbaton/spring.datasource.url=jdbc:mysql:\/\/localhost:3306\/openbaton/g" /etc/openbaton/${properties_file_name}
+    sed -i "s/# spring.datasource.driver-class-name=com.mysql.jdbc.Driver/spring.datasource.driver-class-name=com.mysql.jdbc.Driver/g" /etc/openbaton/${properties_file_name}
+    sed -i "s/# spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/g" /etc/openbaton/${properties_file_name}
+    
+    export dbuser=admin
+    export dbpassword=changeme
+    # Create the Database
+    mysql -uroot -p${rootpasswd} -e "CREATE DATABASE openbaton /*\!40100 DEFAULT CHARACTER SET utf8 */;"
+    mysql -uroot -p${rootpasswd} -e "CREATE USER ${dbuser}@localhost IDENTIFIED BY '${dbpassword}';"
+    mysql -uroot -p${rootpasswd} -e "GRANT ALL ON openbaton.* TO '${dbuser}'@'localhost';"
+    mysql -uroot -p${rootpasswd} -e "FLUSH PRIVILEGES;"
+    mysql -uroot -p${rootpasswd} -e "USE openbaton;"
+}
+
+install_mysql () {
+    properties_file_name=${1}
+    echo " * [INFO] Enabling MySQL Persistence"
+    apt-get update
+    apt-get install -y mysql-server
+    configure_mysql ${properties_file_name}
+}
+
+install_mysql openbaton-nfvo.properties
+
+service openbaton-nfvo stop
+service openbaton-vnfm-generic stop
+
+open-port 8080
+open-port 5672
+open-port 15672

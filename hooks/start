@@ -1,0 +1,19 @@
+#!/bin/bash
+# Here put anything that is needed to start the service.
+# Note that currently this is run directly after install
+# i.e. 'service apache2 start'
+pgrep -f openbaton-nfvo
+if [ "$?" -eq "0" ]; then
+    echo "nfvo is already running..."
+else
+    service openbaton-nfvo start
+fi
+
+pgrep -f openbaton-vnfm-generic
+if [ "$?" -eq "0" ]; then
+    echo "gvnfm is already running..."
+else
+    service openbaton-vnfm-generic start
+fi
+
+status-set active

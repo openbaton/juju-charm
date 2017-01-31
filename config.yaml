@@ -1,0 +1,5 @@
+options:
+    branch:
+        default: release
+        description: Installation type (release, nightly)
+        type: string
