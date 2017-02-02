@@ -7,3 +7,7 @@
 # rm /srv/webroot/server-live.txt && sleep 30
 service openbaton-nfvo stop
 service openbaton-vnfm-generic stop
+service openbaton-ase stop
+service openbaton-plugin-monitoring-zabbix stop
+service openbaton-fms stop
+service openbaton-nse stop
