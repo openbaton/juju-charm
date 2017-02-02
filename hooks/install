@@ -5,10 +5,10 @@
 # failing to account for a debconf question on a dependency, or trying to pull
 # from github without installing git first.
 
-CONFIG_LOCATION=/tmp/bootstrap-config-file
+CONFIG_LOCATION=/tmp/bootstrap_config_file
 
 # get config file and insert config.yaml options as well as default configuration
-curl -o $CONFIG_LOCATION "http://get.openbaton.org/bootstrap-config-file"
+curl -o $CONFIG_LOCATION "http://get.openbaton.org/bootstrap_config_file"
 # set brokerIp to a reachable public ip
 sed -i "s/rabbitmq_broker_ip=localhost/rabbitmq_broker_ip=$(unit-get public-address)/" $CONFIG_LOCATION
 # overwrite monitoring ip if explicitly set
@@ -34,7 +34,7 @@ if [ "$(config-get --format json cli)" = "true" ] ; then
     sed -i "s/openbaton_cli=no/openbaton_cli=yes/" $CONFIG_LOCATION
 fi
 # launch the bootstrap script
-sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)" -configFile=/tmp/bootstrap-config-file
+sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)" -configFile=$CONFIG_LOCATION
 
 service openbaton-nfvo stop
 service openbaton-vnfm-generic stop
