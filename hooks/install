@@ -8,7 +8,7 @@
 CONFIG_LOCATION=/tmp/bootstrap_config_file
 
 # get config file and insert config.yaml options as well as default configuration
-curl -o $CONFIG_LOCATION "http://get.openbaton.org/bootstrap_config_file"
+curl -o $CONFIG_LOCATION "http://get.openbaton.org/bootstrap-config-file"
 # set brokerIp to a reachable public ip
 sed -i "s/rabbitmq_broker_ip=localhost/rabbitmq_broker_ip=$(unit-get public-address)/" $CONFIG_LOCATION
 # overwrite monitoring ip if explicitly set
