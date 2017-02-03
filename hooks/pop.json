@@ -1,0 +1,12 @@
+{
+  "name":"gen_datacenter",
+  "authUrl":"http://localhost:5000/v2.0",
+  "tenant":"admin",
+  "username":"admin",
+  "password":"admin",
+  "keyPair":"stack",
+  "securityGroups": [
+    "default"
+  ],
+  "type":"openstack"
+}
