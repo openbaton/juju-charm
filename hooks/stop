@@ -5,9 +5,39 @@
 # that it is live... you could remove it and sleep for a bit to allow the load
 # balancer to stop sending traffic.
 # rm /srv/webroot/server-live.txt && sleep 30
-service openbaton-nfvo stop
-service openbaton-vnfm-generic stop
-service openbaton-ase stop
-service openbaton-plugin-monitoring-zabbix stop
-service openbaton-fms stop
-service openbaton-nse stop
+pgrep -f openbaton-nfvo
+if [ "$?" -eq "0" ]; then
+    service openbaton-nfvo stop
+else
+    echo "nfvo is not running..."
+fi
+pgrep -f openbaton-vnfm-generic
+if [ "$?" -eq "0" ]; then
+    service openbaton-vnfm-generic stop
+else
+    echo "gvnfm is not running..."
+fi
+pgrep -f openbaton-plugin-monitoring-zabbix
+if [ "$?" -eq "0" ]; then
+    service openbaton-plugin-monitoring-zabbix stop
+else
+    echo "zabbix-plugin is not running..."
+fi
+pgrep -f openbaton-ase
+if [ "$?" -eq "0" ]; then
+    service openbaton-ase stop
+else
+    echo "ase is not running..."
+fi
+pgrep -f openbaton-fms
+if [ "$?" -eq "0" ]; then
+    service openbaton-fms stop
+else
+    echo "fms is not running..."
+fi
+pgrep -f openbaton-nse
+if [ "$?" -eq "0" ]; then
+    service openbaton-nse stop
+else
+    echo "nse is not running..."
+fi
