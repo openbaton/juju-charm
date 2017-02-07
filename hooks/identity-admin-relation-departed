@@ -13,8 +13,5 @@ KEYSTONE_IP=$(relation-get -r $JUJU_RELATION_ID private-address)
 VIM_IDS=$(openbaton VimInstance-findAll|grep -oP '[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}')
 
 for VIM in $VIM_IDS; do
-	if openbaton VimInstance-findById $VIM|grep -Fxq $KEYSTONE_IP
-	then
-		openbaton VimInstance-delete $VIM
-	fi
+	openbaton VimInstance-findById $VIM|grep -q $KEYSTONE_IP && openbaton VimInstance-delete $VIM
 done
