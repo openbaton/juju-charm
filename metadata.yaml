@@ -11,5 +11,5 @@ provides:
   website:
     interface: http
 requires:
-  identity-admin:
-    interface: keystone
+  identity-credentials:
+    interface: keystone-credentials
