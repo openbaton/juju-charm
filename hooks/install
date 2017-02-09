@@ -5,48 +5,45 @@
 # failing to account for a debconf question on a dependency, or trying to pull
 # from github without installing git first.
 
-export DEBIAN_FRONTEND=noninteractive
-sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)"
-# TODO: remove sed configuration when bootstrap is updated and set options through config.yaml
-sed -i "s/brokerIp=localhost/brokerIp=$(unit-get public-address)/" /etc/openbaton/openbaton-*.properties
-# TODO: remove copy pasted mysql install/configuration when bootstrap supports it in noninteractive
-configure_mysql () {
-    export properties_file_name=${1}
+CONFIG_LOCATION=/tmp/bootstrap_config_file
 
-    sed -i "s/spring.datasource.url=jdbc:hsqldb:file:\/tmp\/openbaton\/openbaton.hsdb/# spring.datasource.url=jdbc:hsqldb:file:\/tmp\/openbaton\/openbaton.hsdb/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/# spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/# spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/spring.jpa.hibernate.ddl-auto=create-drop/# spring.jpa.hibernate.ddl-auto=create-drop/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.jpa.hibernate.ddl-auto=update/spring.jpa.hibernate.ddl-auto=update/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.datasource.validationQuery=SELECT 1/spring.datasource.validationQuery=SELECT 1/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.datasource.testOnBorrow=true/spring.datasource.testOnBorrow=true/g" /etc/openbaton/${properties_file_name}
-    # Enable MySQL
-    sed -i "s/# spring.datasource.url=jdbc:mysql:\/\/localhost:3306\/openbaton/spring.datasource.url=jdbc:mysql:\/\/localhost:3306\/openbaton/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.datasource.driver-class-name=com.mysql.jdbc.Driver/spring.datasource.driver-class-name=com.mysql.jdbc.Driver/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/g" /etc/openbaton/${properties_file_name}
-    
-    export dbuser=admin
-    export dbpassword=changeme
-    # Create the Database
-    mysql -uroot -p${rootpasswd} -e "CREATE DATABASE openbaton /*\!40100 DEFAULT CHARACTER SET utf8 */;"
-    mysql -uroot -p${rootpasswd} -e "CREATE USER ${dbuser}@localhost IDENTIFIED BY '${dbpassword}';"
-    mysql -uroot -p${rootpasswd} -e "GRANT ALL ON openbaton.* TO '${dbuser}'@'localhost';"
-    mysql -uroot -p${rootpasswd} -e "FLUSH PRIVILEGES;"
-    mysql -uroot -p${rootpasswd} -e "USE openbaton;"
-}
-
-install_mysql () {
-    properties_file_name=${1}
-    echo " * [INFO] Enabling MySQL Persistence"
-    apt-get update
-    apt-get install -y mysql-server
-    configure_mysql ${properties_file_name}
-}
-
-install_mysql openbaton-nfvo.properties
+# get config file and insert config.yaml options as well as default configuration
+curl -o $CONFIG_LOCATION "http://get.openbaton.org/bootstrap-config-file"
+# set brokerIp to a reachable public ip
+sed -i "s/rabbitmq_broker_ip=localhost/rabbitmq_broker_ip=$(unit-get public-address)/" $CONFIG_LOCATION
+# overwrite monitoring ip if explicitly set
+if [ "$(config-get --format json monitoring_ip)" != "localhost" ] ; then
+    juju-log -l "INFO" Monitoring IP set
+    sed -i "s/zabbix_server_ip=/zabbix_server_ip=/$(config-get monitoring_ip)/" $CONFIG_LOCATION 
+fi
+# enable autoscaling-engine, fault management ant network slicing engine
+if [ "$(config-get --format json fms)" = "true" ] ; then
+    juju-log -l "INFO" FMS enabled
+    sed -i "s/openbaton_fms=no/openbaton_fms=yes/" $CONFIG_LOCATION
+fi
+if [ "$(config-get --format json ase)" = "true" ] ; then
+    juju-log -l "INFO" ASE enabled
+    sed -i "s/openbaton_ase=no/openbaton_ase=yes/" $CONFIG_LOCATION
+fi
+if [ "$(config-get --format json nse)" = "true" ] ; then
+    juju-log -l "INFO" NSE enabled
+    sed -i "s/openbaton_nse=no/openbaton_nse=yes/" $CONFIG_LOCATION
+fi
+if [ "$(config-get --format json cli)" = "true" ] ; then
+    juju-log -l "INFO" CLI enabled
+    sed -i "s/openbaton_cli=no/openbaton_cli=yes/" $CONFIG_LOCATION
+    # apt-get install python-pip
+    # pip install openbaton-cli
+fi
+# launch the bootstrap script
+sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)" -configFile=$CONFIG_LOCATION
 
 service openbaton-nfvo stop
 service openbaton-vnfm-generic stop
+service openbaton-ase stop
+service openbaton-plugin-monitoring-zabbix stop
+service openbaton-fms stop
+service openbaton-nse stop
 
 open-port 8080
 open-port 5672

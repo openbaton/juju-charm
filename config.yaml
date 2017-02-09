@@ -3,3 +3,23 @@ options:
         default: release
         description: Installation type (release, nightly)
         type: string
+    fms:
+        default: false
+        description: Enable fault-management-system
+        type: boolean
+    ase:
+        default: false
+        description: Enable autoscaling-engine
+        type: boolean
+    nse:
+        default: false
+        description: Enable network-slicing-engine
+        type: boolean
+    cli:
+        default: true
+        description: Enable openbaton-cli
+        type: boolean
+    monitoring_ip:
+        default: localhost
+        description: Reachable IP of the 
+        type: string

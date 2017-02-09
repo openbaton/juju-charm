@@ -1,0 +1,12 @@
+{
+  "name":"gen_datacenter",
+  "authUrl":"http://localhost:PORT/v2.0",
+  "tenant":"TENANT",
+  "username":"USER",
+  "password":"PASSWORD",
+  "keyPair":"openbaton",
+  "securityGroups": [
+    "default"
+  ],
+  "type":"openstack"
+}

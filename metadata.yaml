@@ -10,3 +10,6 @@ tags:
 provides:
   website:
     interface: http
+requires:
+  identity-credentials:
+    interface: keystone-credentials
