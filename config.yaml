@@ -23,3 +23,11 @@ options:
         default: localhost
         description: Reachable IP of the 
         type: string
+    os_user:
+        default: admin
+        description: Openstack username
+        type: string
+    os_tenant:
+        default: admin
+        description: Openstack tenantname
+        type: string
