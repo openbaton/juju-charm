@@ -51,6 +51,8 @@ sed -i "s/nfvo.plugin.timeout=300000/nfvo.plugin.timeout=500000/" /etc/openbaton
 # increasing ems wait time
 sed -i "s/vnfm.ems.start.timeout = 250/vnfm.ems.start.timeout = 2500/" /etc/openbaton/openbaton-vnfm-generic.properties
 
+cp ./user-data-generic-sh /etc/openbaton/openbaton-vnfm-generic-user-data.sh
+
 open-port 8080
 open-port 5672
 open-port 15672
