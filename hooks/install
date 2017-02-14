@@ -14,7 +14,7 @@ sed -i "s/rabbitmq_broker_ip=localhost/rabbitmq_broker_ip=$(unit-get public-addr
 # overwrite monitoring ip if explicitly set
 if [ "$(config-get --format json monitoring_ip)" != "localhost" ] ; then
     juju-log -l "INFO" Monitoring IP set
-    sed -i "s/zabbix_server_ip=/zabbix_server_ip=/$(config-get monitoring_ip)/" $CONFIG_LOCATION 
+    sed -i "s/zabbix_server_ip=/zabbix_server_ip=/$(config-get monitoring_ip)/" $CONFIG_LOCATION
 fi
 # enable autoscaling-engine, fault management ant network slicing engine
 if [ "$(config-get --format json fms)" = "true" ] ; then
@@ -49,7 +49,7 @@ service openbaton-nse stop
 sed -i "s/nfvo.plugin.timeout=300000/nfvo.plugin.timeout=500000/" /etc/openbaton/openbaton-nfvo.properties
 
 # increasing ems wait time
-sed -i "s/vnfm.ems.start.timeout = 250/vnfm.ems.start.timeout = 500/" /etc/openbaton/openbaton-vnfm-generic.properties
+sed -i "s/vnfm.ems.start.timeout = 250/vnfm.ems.start.timeout = 2500/" /etc/openbaton/openbaton-vnfm-generic.properties
 
 open-port 8080
 open-port 5672
