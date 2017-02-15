@@ -7,6 +7,41 @@
 
 CONFIG_LOCATION=/tmp/bootstrap_config_file
 
+install_zabbix (){
+	juju-log -l "INFO" "$SERVICE : Installing zabbix server 3.0"
+    # sane defaults
+    SERVICE="zabbix"
+    LOGFILE="$HOME/install.log"
+    MYSQL_USER_PASSWORD_DEFAULT="root"
+    ZABBIX_PACKAGE="zabbix-release_3.0-1+trusty_all.deb"
+    ZABBIX_REPO="http://repo.zabbix.com/zabbix/3.0/ubuntu/pool/main/z/zabbix-release/${ZABBIX_PACKAGE}"
+
+	wget "${ZABBIX_REPO}"
+	dpkg -i "${ZABBIX_PACKAGE}"
+	rm "${ZABBIX_PACKAGE}"
+	juju-log -l "INFO" Added zabbix repo and installed package
+
+	export DEBIAN_FRONTEND=noninteractive
+	apt-get update >> "$LOGFILE" 2>&1 && echo "$SERVICE : Refreshed apt..." && apt-get install -y -q zabbix-server-mysql zabbix-frontend-php >> "$LOGFILE" 2>&1
+	juju-log -l "INFO" Finished installing packages
+
+	sed -i 's/;date.timezone =/date.timezone = "Europe\/Berlin"/' /etc/php5/apache2/php.ini
+	sed -i 's/# DBPassword=/DBPassword=/' /etc/zabbix/zabbix_server.conf
+	cp "$CHARM_DIR"/hooks/zabbix.conf.php /etc/zabbix/web/zabbix.conf.php
+
+	mysql -uroot -e "create database zabbix character set utf8 collate utf8_bin;" -p"${MYSQL_USER_PASSWORD_DEFAULT}"
+	mysql -uroot -e "grant all privileges on zabbix.* to zabbix@localhost identified by '';" -p"${MYSQL_USER_PASSWORD_DEFAULT}"
+	zcat /usr/share/doc/zabbix-server-mysql/create.sql.gz | mysql -uroot -p"${MYSQL_USER_PASSWORD_DEFAULT}" zabbix
+
+	service apache2 reload
+	service zabbix-server restart
+	juju-log -l "INFO" Changed configuration and restarted service
+
+	#zbx_import_templates.py -a -z 127.0.0.1 -n zbx_export_*_open5g.xml
+	#echo "$SERVICE : Applied open5g configuration"
+
+}
+
 # get config file and insert config.yaml options as well as default configuration
 curl -o $CONFIG_LOCATION "http://get.openbaton.org/bootstrap-config-file"
 # set brokerIp to a reachable public ip
@@ -35,8 +70,13 @@ if [ "$(config-get --format json cli)" = "true" ] ; then
     # apt-get install python-pip
     # pip install openbaton-cli
 fi
+
 # launch the bootstrap script
 sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)" -configFile=$CONFIG_LOCATION
+
+if [ "$(config-get --format json zabbix)" = "true" ] ; then
+	install_zabbix
+fi
 
 service openbaton-nfvo stop
 service openbaton-vnfm-generic stop

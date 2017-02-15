@@ -23,6 +23,10 @@ options:
         default: localhost
         description: Reachable IP of the 
         type: string
+    zabbix:
+        default: true
+        description: Enable zabbix server or not 
+        type: boolean
     os_user:
         default: admin
         description: Openstack username
