@@ -168,8 +168,8 @@ def zbx_add_autoregistration(url, authid, templates=None):
                           'operationtype': 6,
                           'optemplate': [
                               {
-                                  'templateid': templateids[0]
-                              }
+                                  'templateid': templateid
+                              } for templateid in templateids
                           ],
                           'esc_step_to': 1
                       }
