@@ -19,13 +19,13 @@ options:
         default: true
         description: Enable openbaton-cli
         type: boolean
-    monitoring_ip:
-        default: localhost
-        description: Reachable IP of the 
-        type: string
+    monitoring:
+        default: true
+        description: Enable zabbix-server
+        type: boolean
     zabbix:
         default: true
-        description: Enable zabbix server or not 
+        description: Enable zabbix-plugin or not 
         type: boolean
     os_user:
         default: admin
