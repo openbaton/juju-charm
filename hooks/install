@@ -1,10 +1,4 @@
 #!/bin/bash
-# Here do anything needed to install the service
-# i.e. apt-get install -y foo  or  bzr branch http://myserver/mycode /srv/webroot
-# Make sure this hook exits cleanly and is idempotent, common problems here are
-# failing to account for a debconf question on a dependency, or trying to pull
-# from github without installing git first.
-
 CONFIG_LOCATION=/tmp/bootstrap_config_file
 
 install_zabbix (){
@@ -37,9 +31,9 @@ install_zabbix (){
 	service zabbix-server restart
 	juju-log -l "INFO" Changed configuration and restarted service
 
-	#zbx_import_templates.py -a -z 127.0.0.1 -n zbx_export_*_open5g.xml
-	#echo "$SERVICE : Applied open5g configuration"
-
+	"$JUJU_CHARM_DIR"/hooks/zbx_helper.py -a
+	juju-log -l "INFO" Enabled autoregistration
+	service zabbix-server stop
 }
 
 # get config file and insert config.yaml options as well as default configuration
@@ -76,6 +70,7 @@ sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)" -configF
 
 if [ "$(config-get --format json zabbix)" = "true" ] ; then
 	install_zabbix
+	service zabbix-server stop
 fi
 
 service openbaton-nfvo stop
@@ -94,3 +89,5 @@ sed -i "s/vnfm.ems.start.timeout = 250/vnfm.ems.start.timeout = 500/" /etc/openb
 open-port 8080
 open-port 5672
 open-port 15672
+open-port 10051
+open-port 10050

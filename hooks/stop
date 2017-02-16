@@ -41,3 +41,9 @@ if [ "$?" -eq "0" ]; then
 else
     echo "nse is not running..."
 fi
+pgrep -f zabbix-server
+if [ "$?" -eq "0" ]; then
+    service zabbix-server stop
+else
+    echo "zabbix-server is not running..."
+fi
