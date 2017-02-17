@@ -10,7 +10,7 @@ tags:
 provides:
   website:
     interface: http
-  orchestrator:
+  vnfm:
     interface: openbaton-nfvo
 requires:
   identity-credentials:
