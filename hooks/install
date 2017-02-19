@@ -51,7 +51,7 @@ sed -i "s/nfvo.quota.check=true/nfvo.quota.check=false/" $NFVO_PROPERTIES
 # FIXME: allow infinite quota
 sed -i "s/nfvo.vim.drivers.allowInfiniteQuota=false/nfvo.vim.drivers.allowInfiniteQuota=true/" $NFVO_PROPERTIES
 # FIXME: set public ip for monitoring
-sed -i "s/#nfvo.monitoring.ip=localhost/nfvo.monitoring.ip=/$(unit-get public-address)" $NFVO_PROPERTIES
+sed -i "s/#nfvo.monitoring.ip=localhost/nfvo.monitoring.ip=/$(unit-get public-address)/" $NFVO_PROPERTIES
 # increasing ems wait time
 sed -i "s/vnfm.ems.start.timeout = 250/vnfm.ems.start.timeout = 500/" $GENERIC_VNFM_PROPERTIES
 
