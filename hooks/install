@@ -1,7 +1,8 @@
 #!/bin/bash
 CONFIG_LOCATION=/tmp/bootstrap_config_file
-NFVO_PROPERTIES=/opt/openbaton/openbaton-nfvo.properties
+NFVO_PROPERTIES=/etc/openbaton/openbaton-nfvo.properties
 GENERIC_VNFM_PROPERTIES=/etc/openbaton/openbaton-vnfm-generic.properties
+MONITORING_PROPERTIES=/etc/openbaton/openbaton-plugin-monitoring-zabbix.properties
 
 # get config file and insert config.yaml options as well as default configuration
 curl -o $CONFIG_LOCATION "http://get.openbaton.org/bootstrap-config-file"
@@ -10,7 +11,7 @@ sed -i "s/rabbitmq_broker_ip=localhost/rabbitmq_broker_ip=$(unit-get public-addr
 # overwrite monitoring ip if explicitly set
 if [ "$(config-get --format json monitoring)" = "true" ] ; then
     juju-log -l "INFO" Monitoring IP set
-    sed -i "s/zabbix_server_ip=/zabbix_server_ip=/$(unit-get public-address)/" $CONFIG_LOCATION 
+    sed -i "s/zabbix_server_ip=/zabbix_server_ip=/$(unit-get public-address)/" $CONFIG_LOCATION
 fi
 # enable autoscaling-engine, fault management ant network slicing engine
 if [ "$(config-get --format json fms)" = "true" ] ; then
@@ -35,6 +36,14 @@ fi
 # launch the bootstrap script
 sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)" -configFile=$CONFIG_LOCATION
 
+service openbaton-nfvo stop
+service openbaton-vnfm-generic stop
+service openbaton-ase stop
+service openbaton-plugin-monitoring-zabbix stop
+service openbaton-fms stop
+service openbaton-nse stop
+
+
 # increasing timeout of nfvo-plugin communication
 sed -i "s/nfvo.plugin.timeout=300000/nfvo.plugin.timeout=500000/" $NFVO_PROPERTIES
 # FIXME: disable quota-check
@@ -45,6 +54,9 @@ sed -i "s/nfvo.vim.drivers.allowInfiniteQuota=false/nfvo.vim.drivers.allowInfini
 sed -i "s/#nfvo.monitoring.ip=localhost/nfvo.monitoring.ip=/$(unit-get public-address)" $NFVO_PROPERTIES
 # increasing ems wait time
 sed -i "s/vnfm.ems.start.timeout = 250/vnfm.ems.start.timeout = 500/" $GENERIC_VNFM_PROPERTIES
+
+# modifying default zabbix user-zbx=Admin
+sed -i "s/user-zbx=admin/user-zbx=Admin/" $MONITORING_PROPERTIES
 
 install_zabbix (){
 	juju-log -l "INFO" "$SERVICE : Installing zabbix server 3.0"
@@ -85,14 +97,6 @@ if [ "$(config-get --format json zabbix)" = "true" ] ; then
 	install_zabbix
 	service zabbix-server stop
 fi
-
-service openbaton-nfvo stop
-service openbaton-vnfm-generic stop
-service openbaton-ase stop
-service openbaton-plugin-monitoring-zabbix stop
-service openbaton-fms stop
-service openbaton-nse stop
-
 open-port 8080
 open-port 5672
 open-port 15672
