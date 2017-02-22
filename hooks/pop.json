@@ -1,5 +1,5 @@
 {
-  "name":"gen_datacenter",
+  "name":"obcontroller",
   "authUrl":"http://localhost:PORT/v2.0",
   "tenant":"TENANT",
   "username":"USER",

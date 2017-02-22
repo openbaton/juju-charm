@@ -4,25 +4,29 @@ options:
         description: Installation type (release, nightly)
         type: string
     fms:
-        default: false
+        default: true
         description: Enable fault-management-system
         type: boolean
     ase:
-        default: false
+        default: true
         description: Enable autoscaling-engine
         type: boolean
     nse:
-        default: false
+        default: true
         description: Enable network-slicing-engine
         type: boolean
     cli:
         default: true
         description: Enable openbaton-cli
         type: boolean
-    monitoring_ip:
-        default: localhost
-        description: Reachable IP of the 
-        type: string
+    monitoring:
+        default: true
+        description: Enable zabbix-server
+        type: boolean
+    zabbix:
+        default: true
+        description: Enable zabbix-plugin or not 
+        type: boolean
     os_user:
         default: admin
         description: Openstack username

@@ -10,6 +10,8 @@ tags:
 provides:
   website:
     interface: http
+  vnfm:
+    interface: openbaton-nfvo
 requires:
   identity-credentials:
     interface: keystone-credentials
