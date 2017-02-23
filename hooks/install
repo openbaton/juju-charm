@@ -11,7 +11,7 @@ sed -i "s/rabbitmq_broker_ip=localhost/rabbitmq_broker_ip=$(unit-get public-addr
 # overwrite monitoring ip if explicitly set
 if [ "$(config-get --format json monitoring)" = "true" ] ; then
     juju-log -l "INFO" Monitoring IP set
-    sed -i "s/zabbix_server_ip=/zabbix_server_ip=/$(unit-get public-address)/" $CONFIG_LOCATION
+    sed -i "s/zabbix_server_ip=/zabbix_server_ip=$(unit-get public-address)/" $CONFIG_LOCATION
 fi
 # enable autoscaling-engine, fault management ant network slicing engine
 if [ "$(config-get --format json fms)" = "true" ] ; then
