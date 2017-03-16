@@ -1,53 +1,105 @@
 #!/bin/bash
-# Here do anything needed to install the service
-# i.e. apt-get install -y foo  or  bzr branch http://myserver/mycode /srv/webroot
-# Make sure this hook exits cleanly and is idempotent, common problems here are
-# failing to account for a debconf question on a dependency, or trying to pull
-# from github without installing git first.
+CONFIG_LOCATION=/tmp/bootstrap_config_file
+NFVO_PROPERTIES=/etc/openbaton/openbaton-nfvo.properties
+GENERIC_VNFM_PROPERTIES=/etc/openbaton/openbaton-vnfm-generic.properties
+MONITORING_PROPERTIES=/etc/openbaton/openbaton-plugin-monitoring-zabbix.properties
 
-export DEBIAN_FRONTEND=noninteractive
-sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)"
-# TODO: remove sed configuration when bootstrap is updated and set options through config.yaml
-sed -i "s/brokerIp=localhost/brokerIp=$(unit-get public-address)/" /etc/openbaton/openbaton-*.properties
-# TODO: remove copy pasted mysql install/configuration when bootstrap supports it in noninteractive
-configure_mysql () {
-    export properties_file_name=${1}
+# get config file and insert config.yaml options as well as default configuration
+curl -o $CONFIG_LOCATION "http://get.openbaton.org/bootstrap-config-file"
+# set brokerIp to a reachable public ip
+sed -i "s/rabbitmq_broker_ip=localhost/rabbitmq_broker_ip=$(unit-get public-address)/" $CONFIG_LOCATION
+# overwrite monitoring ip if explicitly set
+if [ "$(config-get --format json monitoring)" = "true" ] ; then
+    juju-log -l "INFO" Monitoring IP set
+    sed -i "s/zabbix_server_ip=/zabbix_server_ip=$(unit-get public-address)/" $CONFIG_LOCATION
+fi
+# enable autoscaling-engine, fault management ant network slicing engine
+if [ "$(config-get --format json fms)" = "true" ] ; then
+    juju-log -l "INFO" FMS enabled
+    sed -i "s/openbaton_fms=no/openbaton_fms=yes/" $CONFIG_LOCATION
+fi
+if [ "$(config-get --format json ase)" = "true" ] ; then
+    juju-log -l "INFO" ASE enabled
+    sed -i "s/openbaton_ase=no/openbaton_ase=yes/" $CONFIG_LOCATION
+fi
+if [ "$(config-get --format json nse)" = "true" ] ; then
+    juju-log -l "INFO" NSE enabled
+    sed -i "s/openbaton_nse=no/openbaton_nse=yes/" $CONFIG_LOCATION
+fi
+if [ "$(config-get --format json cli)" = "true" ] ; then
+    juju-log -l "INFO" CLI enabled
+    sed -i "s/openbaton_cli=no/openbaton_cli=yes/" $CONFIG_LOCATION
+    # apt-get install python-pip
+    # pip install openbaton-cli
+fi
 
-    sed -i "s/spring.datasource.url=jdbc:hsqldb:file:\/tmp\/openbaton\/openbaton.hsdb/# spring.datasource.url=jdbc:hsqldb:file:\/tmp\/openbaton\/openbaton.hsdb/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/# spring.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/# spring.jpa.database-platform=org.hibernate.dialect.HSQLDialect/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/spring.jpa.hibernate.ddl-auto=create-drop/# spring.jpa.hibernate.ddl-auto=create-drop/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.jpa.hibernate.ddl-auto=update/spring.jpa.hibernate.ddl-auto=update/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.datasource.validationQuery=SELECT 1/spring.datasource.validationQuery=SELECT 1/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.datasource.testOnBorrow=true/spring.datasource.testOnBorrow=true/g" /etc/openbaton/${properties_file_name}
-    # Enable MySQL
-    sed -i "s/# spring.datasource.url=jdbc:mysql:\/\/localhost:3306\/openbaton/spring.datasource.url=jdbc:mysql:\/\/localhost:3306\/openbaton/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.datasource.driver-class-name=com.mysql.jdbc.Driver/spring.datasource.driver-class-name=com.mysql.jdbc.Driver/g" /etc/openbaton/${properties_file_name}
-    sed -i "s/# spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect/g" /etc/openbaton/${properties_file_name}
-    
-    export dbuser=admin
-    export dbpassword=changeme
-    # Create the Database
-    mysql -uroot -p${rootpasswd} -e "CREATE DATABASE openbaton /*\!40100 DEFAULT CHARACTER SET utf8 */;"
-    mysql -uroot -p${rootpasswd} -e "CREATE USER ${dbuser}@localhost IDENTIFIED BY '${dbpassword}';"
-    mysql -uroot -p${rootpasswd} -e "GRANT ALL ON openbaton.* TO '${dbuser}'@'localhost';"
-    mysql -uroot -p${rootpasswd} -e "FLUSH PRIVILEGES;"
-    mysql -uroot -p${rootpasswd} -e "USE openbaton;"
-}
-
-install_mysql () {
-    properties_file_name=${1}
-    echo " * [INFO] Enabling MySQL Persistence"
-    apt-get update
-    apt-get install -y mysql-server
-    configure_mysql ${properties_file_name}
-}
-
-install_mysql openbaton-nfvo.properties
+# launch the bootstrap script
+sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)" -configFile=$CONFIG_LOCATION
 
 service openbaton-nfvo stop
 service openbaton-vnfm-generic stop
+service openbaton-ase stop
+service openbaton-plugin-monitoring-zabbix stop
+service openbaton-fms stop
+service openbaton-nse stop
 
+
+# increasing timeout of nfvo-plugin communication
+sed -i "s/nfvo.plugin.timeout=300000/nfvo.plugin.timeout=500000/" $NFVO_PROPERTIES
+# FIXME: disable quota-check
+sed -i "s/nfvo.quota.check=true/nfvo.quota.check=false/" $NFVO_PROPERTIES
+# FIXME: allow infinite quota
+sed -i "s/nfvo.vim.drivers.allowInfiniteQuota=false/nfvo.vim.drivers.allowInfiniteQuota=true/" $NFVO_PROPERTIES
+# FIXME: set public ip for monitoring
+sed -i "s/#nfvo.monitoring.ip=localhost/nfvo.monitoring.ip=$(unit-get public-address)/" $NFVO_PROPERTIES
+# increasing ems wait time
+sed -i "s/vnfm.ems.start.timeout = 250/vnfm.ems.start.timeout = 500/" $GENERIC_VNFM_PROPERTIES
+
+# modifying default zabbix user-zbx=Admin
+sed -i "s/user-zbx=admin/user-zbx=Admin/" $MONITORING_PROPERTIES
+
+install_zabbix (){
+	juju-log -l "INFO" "$SERVICE : Installing zabbix server 3.0"
+	# sane defaults
+	SERVICE="zabbix"
+	LOGFILE="$HOME/install.log"
+	MYSQL_USER_PASSWORD_DEFAULT="root"
+	ZABBIX_PACKAGE="zabbix-release_3.0-1+trusty_all.deb"
+	ZABBIX_REPO="http://repo.zabbix.com/zabbix/3.0/ubuntu/pool/main/z/zabbix-release/${ZABBIX_PACKAGE}"
+
+	wget "${ZABBIX_REPO}"
+	dpkg -i "${ZABBIX_PACKAGE}"
+	rm "${ZABBIX_PACKAGE}"
+	juju-log -l "INFO" Added zabbix repo and installed package
+
+	export DEBIAN_FRONTEND=noninteractive
+	apt-get update >> "$LOGFILE" 2>&1 && echo "$SERVICE : Refreshed apt..." && apt-get install -y -q zabbix-server-mysql zabbix-frontend-php >> "$LOGFILE" 2>&1
+	juju-log -l "INFO" Finished installing packages
+
+	sed -i 's/;date.timezone =/date.timezone = "Europe\/Berlin"/' /etc/php5/apache2/php.ini
+	sed -i 's/# DBPassword=/DBPassword=/' /etc/zabbix/zabbix_server.conf
+	cp "$CHARM_DIR"/hooks/zabbix.conf.php /etc/zabbix/web/zabbix.conf.php
+
+	mysql -uroot -e "create database zabbix character set utf8 collate utf8_bin;" -p"${MYSQL_USER_PASSWORD_DEFAULT}"
+	mysql -uroot -e "grant all privileges on zabbix.* to zabbix@localhost identified by '';" -p"${MYSQL_USER_PASSWORD_DEFAULT}"
+	zcat /usr/share/doc/zabbix-server-mysql/create.sql.gz | mysql -uroot -p"${MYSQL_USER_PASSWORD_DEFAULT}" zabbix
+
+	service apache2 reload
+	service zabbix-server restart
+	juju-log -l "INFO" Changed configuration and restarted service
+
+	"$JUJU_CHARM_DIR"/hooks/zbx_helper.py -a
+	juju-log -l "INFO" Enabled autoregistration
+	service zabbix-server stop
+}
+
+if [ "$(config-get --format json zabbix)" = "true" ] ; then
+	install_zabbix
+	service zabbix-server stop
+fi
 open-port 8080
 open-port 5672
 open-port 15672
+open-port 10051
+open-port 10050
+

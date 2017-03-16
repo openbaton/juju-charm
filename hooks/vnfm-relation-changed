@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -ex
+
+CONFIG_FILE=/etc/openbaton/openbaton-nfvo.properties
+RABBITMQ_HOST=$(unit-get public-address)
+RABBITMQ_USER=$(grep rabbitmq.username $CONFIG_FILE| cut -d "=" -f 2)
+RABBITMQ_PASS=$(grep rabbitmq.password $CONFIG_FILE| cut -d "=" -f 2)
+
+relation-set brokerip="$RABBITMQ_HOST"
+relation-set username="$RABBITMQ_USER"
+relation-set password="$RABBITMQ_PASS"
+relation-set exchange="openbaton-exchange"

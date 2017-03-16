@@ -8,12 +8,41 @@ if [ "$?" -eq "0" ]; then
 else
     service openbaton-nfvo start
 fi
-
 pgrep -f openbaton-vnfm-generic
 if [ "$?" -eq "0" ]; then
     echo "gvnfm is already running..."
 else
     service openbaton-vnfm-generic start
+fi
+pgrep -f openbaton-plugin-monitoring-zabbix
+if [ "$?" -eq "0" ]; then
+    echo "zabbix-plugin is already running..."
+else
+    service openbaton-plugin-monitoring-zabbix start
+fi
+pgrep -f openbaton-ase
+if [ "$?" -eq "0" ]; then
+    echo "ase is already running..."
+else
+    service openbaton-ase start
+fi
+pgrep -f openbaton-fms
+if [ "$?" -eq "0" ]; then
+    echo "fms is already running..."
+else
+    service openbaton-fms start
+fi
+pgrep -f openbaton-nse
+if [ "$?" -eq "0" ]; then
+    echo "nse is already running..."
+else
+    service openbaton-nse start
+fi
+pgrep -f zabbix-server
+if [ "$?" -eq "0" ]; then
+        echo "zabbix-server is already running..."
+else
+    service zabbix-server start
 fi
 
 status-set active
