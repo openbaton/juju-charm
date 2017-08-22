@@ -12,6 +12,8 @@ provides:
     interface: http
   vnfm:
     interface: openbaton-nfvo
+extra-bindings: 
+  internal:
 requires:
   identity-credentials:
     interface: keystone-credentials
