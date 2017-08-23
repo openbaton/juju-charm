@@ -1,7 +1,7 @@
 name: openbaton
 summary: Open Baton
 maintainer: FOKUS
-series: [trusty]
+series: [xenial]
 description: |
   Open Baton is an open source project providing a reference implementation of
   the ETSI NFV MANO specification
