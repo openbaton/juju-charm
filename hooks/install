@@ -34,7 +34,7 @@ if [ "$(config-get --format json cli)" = "true" ] ; then
 fi
 
 # launch the bootstrap script
-sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)" -configFile=$CONFIG_LOCATION
+sh <(curl -s http://get.openbaton.org/bootstrap) "$(config-get branch)" --config-file=$CONFIG_LOCATION
 
 service openbaton-nfvo stop
 service openbaton-vnfm-generic stop
