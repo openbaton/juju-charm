@@ -64,7 +64,7 @@ install_zabbix (){
 	SERVICE="zabbix"
 	LOGFILE="$HOME/install.log"
 	MYSQL_USER_PASSWORD_DEFAULT="root"
-	ZABBIX_PACKAGE="zabbix-release_3.0-1+trusty_all.deb"
+        ZABBIX_PACKAGE="zabbix-release_3.0-1+xenial_all.deb"
 	ZABBIX_REPO="http://repo.zabbix.com/zabbix/3.0/ubuntu/pool/main/z/zabbix-release/${ZABBIX_PACKAGE}"
 
 	wget "${ZABBIX_REPO}"
